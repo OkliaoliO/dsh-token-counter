@@ -1,0 +1,10 @@
+# Bundle patch for dsh-token-counter.
+#
+# Inserting a row is what makes DSH load this package. The row's `name` MUST be
+# the bare package name: the Web Client module system attaches a package's
+# browser half (`exports["./client"]`) only to the row whose specifier is the
+# bare package name, so a row mounted from a path or a subpath export would load
+# the Host half with no UI.
+- insert:
+    - id: token-counter
+      name: 'dsh-token-counter'

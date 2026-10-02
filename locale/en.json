@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Token Counter",
+    "description": "Shows the account balance and, after every turn, that turn's token usage and what it cost."
+  }
+}

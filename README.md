@@ -1,6 +1,6 @@
 # Token Counter
 
-一个 DeepSeek Harness（DSH）插件：显示账户余额，并在每轮对话结束后显示该轮的 Token 消耗量与本次花费。本插件由 **DeepSeek-V4.1-Flash** 在 **最高推理强度（max）** 下编写。
+English | [中文](README.zh.md)
 
 A DeepSeek Harness (DSH) plugin that shows **the account balance** and, after every
 conversation turn, that turn's **token usage** and **what it cost**. Written by
@@ -173,6 +173,7 @@ dsh-token-counter/
   lib/index.js      # Host half: a well-formed Cordis plugin that registers nothing
   lib/client.js     # Browser half: the lazy-CJS factory bundle
   locale/{en,zh}.json
+  README.md         # this file; README.zh.md is the Chinese translation
 ```
 
 The package is **complete as checked in** — there is no build step. `lib/client.js` is

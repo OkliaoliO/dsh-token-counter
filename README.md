@@ -13,9 +13,10 @@ conversation turn, that turn's **token usage** and **what it cost**. Written by
 | `conversation.input.left` (resident composer tool row) | The wallet chip — the only place the balance appears: `余额 ¥3.24`. Shows the account's wallets in the interface language's currency, added together, exactly as the platform reports them. Refreshed every minute and after every turn. |
 | `conversation.chat.turnTail` (completed-Turn footer) | The per-Turn accounting, no balance, always on three lines — usage, then cost, then the input/output detail. |
 
-Every currency figure in both seats follows the interface language: the price list for
-costs, and the wallet selection for the balance. Switching language in DSH re-renders
-both without another network round trip, including Turns already on screen.
+Every figure **and every label** in both seats follows the interface language: the
+price list and the copy for costs, and the currency for the wallet. Switching language
+in DSH re-renders both without another network round trip, including Turns already on
+screen.
 
 With a Chinese interface, a `deepseek-flash` Turn at off-peak rates reads:
 
@@ -23,6 +24,14 @@ With a Chinese interface, a `deepseek-flash` Turn at off-peak rates reads:
 本轮 Token 1.23M · 输入 1.20M · 输出 30.0K · 缓存命中 1.10M
 本次花费 ¥0.2420 优惠时段
 输入 ¥0.1220（命中 ¥0.0220 · 未命中 ¥0.1000） · 输出 ¥0.1200
+```
+
+The same Turn on an English interface:
+
+```
+Turn tokens 1.23M · in 1.20M · out 30.0K · cache hit 1.10M
+Cost $0.0363 off-peak
+in $0.0183 (hit $0.0033 · miss $0.0150) · out $0.0180
 ```
 
 It is a column, so each of those three sections takes its own line no matter how wide
@@ -60,17 +69,32 @@ the cached and uncached halves.
   Only `slots` is a hard dependency, so the token and cost readout still renders when
   no account is available.
 
-### Which currency everything uses
+### What the interface language decides
 
-The **interface language** decides, for both seats:
+The **interface language** decides three things, for both seats:
 
-| Interface language | Currency and price list | Source |
-| --- | --- | --- |
-| `zh*` | `CNY`, priced from `PRICES.CNY` | <https://api-docs.deepseek.com/zh-cn/quick_start/pricing/> |
-| anything else | `PRICES.USD` | <https://api-docs.deepseek.com/quick_start/pricing/> |
+| Interface language | Price list | Display currency | Copy |
+| --- | --- | --- | --- |
+| `zh*` | `PRICES.CNY` | `CNY` | `DICTS.zh` |
+| anything else | `PRICES.USD` | `USD` | `DICTS.en` |
+
+Sources for the two price lists:
+<https://api-docs.deepseek.com/zh-cn/quick_start/pricing/> and
+<https://api-docs.deepseek.com/quick_start/pricing/>.
 
 The plugin subscribes to the client `locale` service, so switching language in DSH
-re-prices the readout immediately — including Turns already on screen.
+re-labels the readout, re-picks the price table, and re-selects a wallet the account
+already holds — all immediately, and all including Turns already on screen. The locale
+is read through the same `locale` service that supplies the account Remote's `locale`
+field, so no separate plumbing is involved.
+
+Copy is *not* registered with DSH's locale registry: the dictionaries live in this
+bundle and are selected from the same locale signal that already drives the currency
+switch. That is a deliberate trade — it reuses one verified code path instead of
+adding a dependency on the framework's translation seat, at the cost of not being
+reusable by other plugins. If you would rather use the native mechanism, register a
+namespace with `ctx.locale.register` and declare `locale: <ns>` on the two
+`ctx.slots.register` calls, which puts a `t` seat on the component props.
 
 ### Where conversion does and does not happen
 
@@ -98,14 +122,14 @@ different currencies, and are not subtractable — the honest outcome.
 Both readouts are one size, with their roles separated by **colour** rather than by
 opacity or weight:
 
-* `.dsh-tc-label` — Chinese labels, separators, notes, and brackets. Neutral: black,
-  flipping to white under `body[data-ds-dark-theme]`, weight 400.
+* `.dsh-tc-label` — labels, separators, notes, and brackets. Neutral: black, flipping
+  to white under `body[data-ds-dark-theme]`, weight 400.
 * `.dsh-tc-count` — token counts and their `K`/`M` suffixes. Neutral too (weight 500),
   so the four usage entries DSH already reports stay visually apart from the money and
   green is left to mark spend alone.
 * `.dsh-tc-value` — figures of money and their currency symbols. The theme's success
   green (`--dsw-alias-success`, fallback `#22c55e`), weight 500.
-* `.dsh-tc-period` — the `优惠时段` / `标准时段` marker, in the theme's link blue
+* `.dsh-tc-period` — the peak/off-peak marker, in the theme's link blue
   (`--dsw-alias-link`, fallback `#4d6bfe`).
 
 Splitting the neutral run from the money by colour is deliberate: the CJK and Latin
@@ -120,7 +144,7 @@ only — so tunables live in **`lib/client.js`** as named constants at the top:
 
 | Constant | Meaning |
 | --- | --- |
-| `LABELS` | UI copy (Simplified Chinese by default). |
+| `DICTS` | UI copy, one dictionary per interface language (`zh`, `en`). Selected by `labelsFor`. |
 | `PRICES` | Official per-1M-token rates **keyed by currency** (`CNY`, `USD`), each with `routes` keyed by `provider/model` plus a `default`. Values are the **off-peak** rates from that currency's page. |
 | `FALLBACK_CURRENCY` | Currency used when the interface language is not Chinese (or is unknown). |
 | `PEAK` | Peak windows (Beijing 09:00–12:00 and 14:00–18:00, Mon–Fri) bill at `multiplier`× the off-peak rate. Set `enabled: false` to always bill off-peak. |
